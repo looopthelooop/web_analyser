@@ -3,14 +3,118 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Graph App</title>
-    <link rel="stylesheet" href="styles.css">
-</head>
-<body>
-    <div class="tab">
-        <!-- Updated href to full path -->
-        <a href="plot.html" class="button">Plot</a>
-    </div>
+    <title>Multiple Data Uploads</title>
+    <style>
+        .container {
+            display: flex;
+            flex-direction: row;;
+        }
 
+        .left_column {
+            flex: 1;
+            padding: 10px;
+        }
+
+        .right_column {
+            flex-grow: 4;
+        }
+
+        /* Flex container for listbox and delete button */
+        .file-list-container {
+            display: flex;
+            justify-content: space-between; /* Push the delete button to the right */
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        /* Style for the listbox */
+        #fileListbox {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+            max-height: 200px;
+            overflow-y: scroll;
+            border: 1px solid #ddd;
+            flex: 1;  /* Makes the listbox take up the available space */
+        }
+
+        /* Style for individual list items */
+        #fileListbox li {
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        /* Highlight selected item */
+        #fileListbox li.selected {
+            background-color: #50acaf;
+            color: white;
+        }
+
+        /* Hover effect for file items */
+        #fileListbox li:hover {
+            background-color: #f0f0f0;
+        }
+
+        /* Delete button style */
+        .delete-button {
+            color: black;
+            border: 1px;
+            padding: 5px;
+            cursor: pointer;
+            font-size: 20px;
+        }
+
+        .delete-button-container {
+            display: flex;
+            align-items: center;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="left_column">
+
+            <h2>Select a File to Plot</h2>
+            <div class="file-list-container">
+                <!-- Listbox to display uploaded files -->
+                <form action="/" method="POST" style="flex: 1;">
+                    <ul id="fileListbox">
+                        {% for file in uploaded_files %}
+                            <li class="{% if file == selected_file %}selected{% endif %}">
+                                <input type="radio" id="file_{{ loop.index }}" name="uploaded_files" value="{{ file }}" {% if file == selected_file %}checked{% endif %}>
+                                <label for="file_{{ loop.index }}">{{ file }}</label>
+                            </li>
+                        {% endfor %}
+                    </ul>
+
+                    <button type="submit">Plot</button>
+                </form>
+
+                <!-- Delete button container (to the right) -->
+                <form action="/" method="POST" style="display: flex; flex-direction: column; align-items: flex-end;">
+                    <button type="submit" name="delete_file" value="{{ selected_file }}" class="delete-button" {% if not selected_file %} disabled {% endif %}>-</button>
+                </form>
+            </div>
+
+            <h2>Choose Type of File to Upload</h2>
+
+            <!-- File upload form -->
+            <form action="/" method="POST" enctype="multipart/form-data">
+                <input type="file" name="bode_analysis" accept=".csv" required>
+                <button type="submit">Upload CSV</button>
+            </form>
+
+        </div>
+
+        <div class="right_column">
+            {% if plot_html %}
+                <div>{{ plot_html | safe }}</div>
+            {% endif %}
+        </div>
+    </div>
 </body>
 </html>
