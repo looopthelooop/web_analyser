@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSV, Excel, and Text Data Plot</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.plot.ly/plotly-3.0.1.min.js" charset="utf-8"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.1/xlsx.full.min.js"></script>
+    <style>
+        .tab {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .container {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+
+        .left-side {
+            flex: 1;
+            margin-right: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .right-side {
+            flex: 4;
+            height: 400px;
+            padding: 20px;
+            width: 100%;
+        }
+
+        #openFileButton {
+            width: 100%;
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            margin-bottom: 10px;
+        }
+
+        select {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+
+        #subplotsList {
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+        }
+
+        .button-container {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .button-container button {
+            width: 48%;
+            padding: 10px;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        .button-container button.clear {
+            background-color: #4CAF50;
+        }
+
+        .button-container button:hover {
+            opacity: 0.8;
+        }
+
+        .button-container button:first-child {
+            background-color: #f44336;
+        }
+
+        /* Change Plot Titles Button */
+        #changeTitlesButton {
+            background-color: #2196F3;
+            width: 100%;
+            padding: 10px;
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+
+        #form-container {
+            margin-top: 20px;
+            display: none;
+            background-color: #2196F3;
+            padding: 15px;
+            color: white;
+            width: 100%;
+        }
+
+        #form-container h3 {
+            margin-bottom: 15px;
+        }
+
+        .form-input {
+            margin-bottom: 10px;
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        .form-container button {
+            width: 100%;
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="tab">
+        <a href="index.html" class="button">Home</a>
+        <a href="plot.html" class="button active">Plot</a>
+    </div>
+
+    <div class="container">
+        <div class="left-side">
+            <select id="fileList" size="5" multiple></select>
+            <button id="openFileButton">Open File</button>
+            <input type="file" id="fileInput" multiple style="display:none;">
+            
+            <div>
+                <label for="xAxis">Choose X Axis:</label>
+                <select id="xAxis"></select>
+            </div>
+
+            <div>
+                <label for="yAxis">Choose Y Axis:</label>
+                <select id="yAxis"></select>
+            </div>
+
+            <button id="addButton">Add</button>
+
+            <div>
+                <label for="subplotsList">Added Data:</label>
+                <select id="subplotsList" size="5" multiple></select>
+            </div>
+
+            <div class="button-container">
+                <button id="deleteButton">Delete</button>
+                <button id="clearButton" class="clear">Clear</button>
+            </div>
+
+            <button id="changeTitlesButton">Change Plot Titles</button> <!-- Blue button to show form -->
+
+        </div>
+
+        <div class="right-side">
+            <div id="graph"></div>
+        </div>
+    </div>
+
+    <div id="form-container" class="form-container">
+        <h3>Edit Plot Title and Axis Labels:</h3>
+        <input class="form-input" type="text" id="titleInput" placeholder="Edit Graph Title" />
+        <input class="form-input" type="text" id="xAxisInput" placeholder="Edit X-Axis Title" />
+        <input class="form-input" type="text" id="yAxisInput" placeholder="Edit Y-Axis Title" />
+        <button id="submitTitleForm">Submit</button>
+    </div>
+
+    <script>
+        const openFileButton = document.getElementById('openFileButton');
+        const fileInput = document.getElementById('fileInput');
+        const fileList = document.getElementById('fileList');
+        const xAxisDropdown = document.getElementById('xAxis');
+        const yAxisDropdown = document.getElementById('yAxis');
+        const addButton = document.getElementById('addButton');
+        const subplotsList = document.getElementById('subplotsList');
+        const deleteButton = document.getElementById('deleteButton');
+        const clearButton = document.getElementById('clearButton');
+        const changeTitlesButton = document.getElementById('changeTitlesButton');
+        const formContainer = document.getElementById('form-container');
+        const submitTitleForm = document.getElementById('submitTitleForm');
+        
+        let headers = [], data = [];
+        let plotData = [];
+        let subplotNames = [];
+        
+        // Set default plot titles and axis labels with custom fonts and positioning
+        let plotLayout = {
+            title: {
+                text: 'CSV Data Plot',
+                font: {
+                    family: 'Courier New, monospace',
+                    size: 24
+                },
+                xref: 'paper',
+                x: 0.05,
+            },
+            xaxis: {
+                title: {
+                    text: 'X-Axis',
+                    font: {
+                        family: 'Courier New, monospace',
+                        size: 18,
+                        color: '#7f7f7f'
+                    }
+                },
+            },
+            yaxis: {
+                title: {
+                    text: 'Y-Axis',
+                    font: {
+                        family: 'Courier New, monospace',
+                        size: 18,
+                        color: '#7f7f7f'
+                    }
+                }
+            }
+        };
+
+        // Initialize with an empty trace and default titles
+        Plotly.newPlot('graph', [{
+            x: [],
+            y: [],
+            type: 'scatter',
+            mode: 'lines',
+            name: 'Empty Data'
+        }], plotLayout);
+
+        openFileButton.addEventListener('click', () => fileInput.click());
+
+        fileInput.addEventListener('change', (event) => {
+            fileList.innerHTML = '';
+            Array.from(event.target.files).forEach(file => {
+                const option = document.createElement('option');
+                option.textContent = file.name;
+                fileList.appendChild(option);
+            });
+        });
+
+        fileList.addEventListener('change', () => {
+            const selectedFile = fileInput.files[fileList.selectedIndex];
+            const fileExtension = selectedFile.name.split('.').pop().toLowerCase();
+            
+            // Handle CSV, Excel, and Text files
+            if (fileExtension === 'csv') {
+                processCSV(selectedFile);
+            } else if (fileExtension === 'xlsx' || fileExtension === 'xls') {
+                processExcel(selectedFile);
+            } else if (fileExtension === 'txt') {
+                processText(selectedFile);
+            } else {
+                alert('Unsupported file type');
+            }
+        });
+
+        function processCSV(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const lines = e.target.result.split('\n').map(line => line.trim());
+                if (lines.length > 0) {
+                    headers = lines[0].split(',').map(header => header.trim());
+                    data = lines.slice(1).map(line => line.split(',').map(cell => cell.trim()));
+
+                    updateDropdowns();
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function processExcel(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const wb = XLSX.read(e.target.result, { type: 'binary' });
+                const ws = wb.Sheets[wb.SheetNames[0]];
+                const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
+
+                headers = rows[0];
+                data = rows.slice(1);
+
+                updateDropdowns();
+            };
+            reader.readAsBinaryString(file);
+        }
+
+        function processText(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const lines = e.target.result.split('\n').map(line => line.trim());
+                // Assuming space-separated values in the text file
+                if (lines.length > 0) {
+                    headers = lines[0].split(/\s+/).map(header => header.trim());
+                    data = lines.slice(1).map(line => line.split(/\s+/).map(cell => cell.trim()));
+
+                    updateDropdowns();
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function updateDropdowns() {
+            xAxisDropdown.innerHTML = `<option value="Index">Index</option>`;
+            headers.forEach(header => {
+                xAxisDropdown.innerHTML += `<option value="${header}">${header}</option>`;
+            });
+
+            yAxisDropdown.innerHTML = headers.map(header => 
+                `<option value="${header}">${header}</option>`
+            ).join('');
+        }
+
+        addButton.addEventListener('click', () => {
+            const xSelection = xAxisDropdown.value;
+            const ySelection = yAxisDropdown.value;
+            const indexArray = Array.from({ length: data.length }, (_, i) => i);
+
+            let xData = xSelection === 'Index' ? indexArray : data.map(row => row[headers.indexOf(xSelection)]);
+            let yData = ySelection === 'Index' ? indexArray : data.map(row => row[headers.indexOf(ySelection)]);
+
+            let name = `Data ${plotData.length + 1}`;
+
+            const trace = {
+                x: xData,
+                y: yData,
+                mode: 'lines',
+                type: 'scatter',
+                name: name
+            };
+
+            plotData.push(trace);
+            subplotNames.push(name);
+
+            const option = document.createElement('option');
+            option.textContent = name;
+            subplotsList.appendChild(option);
+
+            Plotly.react('graph', plotData, plotLayout);
+        });
+
+        deleteButton.addEventListener('click', () => {
+            const selectedOption = subplotsList.options[subplotsList.selectedIndex];
+            if (selectedOption) {
+                const index = Array.from(subplotsList.options).indexOf(selectedOption);
+                if (index !== -1) {
+                    plotData.splice(index, 1);
+                    subplotNames.splice(index, 1);
+                    subplotsList.removeChild(selectedOption);
+                    Plotly.react('graph', plotData, plotLayout);
+                }
+            }
+        });
+
+        clearButton.addEventListener('click', () => {
+            plotData = [];
+            subplotNames = [];
+            subplotsList.innerHTML = '';
+            Plotly.react('graph', plotData, plotLayout);
+        });
+
+        changeTitlesButton.addEventListener('click', () => {
+            formContainer.style.display = formContainer.style.display === 'block' ? 'none' : 'block';
+        });
+
+        submitTitleForm.addEventListener('click', function() {
+            const newTitle = document.getElementById('titleInput').value;
+            const newXAxis = document.getElementById('xAxisInput').value;
+            const newYAxis = document.getElementById('yAxisInput').value;
+
+            if (newTitle) plotLayout.title.text = newTitle;
+            if (newXAxis) plotLayout.xaxis.title.text = newXAxis;
+            if (newYAxis) plotLayout.yaxis.title.text = newYAxis;
+
+            Plotly.react('graph', plotData, plotLayout);
+            formContainer.style.display = 'none';
+        });
+
+        subplotsList.addEventListener('dblclick', (event) => {
+            if (event.target.tagName === 'OPTION') {
+                const newName = prompt("Enter a new name for the data series:");
+                if (newName) {
+                    const index = Array.from(subplotsList.options).indexOf(event.target);
+                    plotData[index].name = newName;
+                    event.target.textContent = newName;
+                    Plotly.react('graph', plotData, plotLayout);
+                }
+            }
+        });
+    </script>
+
+</body>
+</html>

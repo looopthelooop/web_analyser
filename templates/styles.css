@@ -1,0 +1,47 @@
+/* Tab container to hold buttons */
+.tab {
+    display: flex;  /* Use flexbox for better control */
+    justify-content: flex-start;  /* Ensure buttons align to the left */
+    align-items: center;  /* Vertically center the buttons */
+    overflow: hidden;
+    border: 1px solid #ccc;
+    background-color: #f1f1f1;
+    width: 100%;  /* Ensure it spans the full width */
+}
+
+/* Style for the links (acting as buttons) */
+.tab a.button {
+    background-color: inherit;
+    display: inline-block;  /* Keep the inline-block display for buttons */
+    border: 1px solid #ddd;
+    outline: none;
+    cursor: pointer;
+    padding: 14px 16px;
+    transition: 0.3s;
+    text-decoration: none;  /* Ensure no underlines on links */
+    color: inherit;  /* Inherit text color */
+    margin-right: 2px;  /* Adds a small gap between buttons */
+}
+
+/* Hover effect for buttons */
+.tab a.button:hover {
+    background-color: #ddd;
+}
+
+/* Active tab button styling */
+.tab a.button.active {
+    background-color: #4CAF50;  /* Green color for the active tab */
+    color: white;
+}
+
+/* Content for each tab (hidden by default) */
+.tab-content {
+    display: none;
+    padding: 20px;
+    border-top: 1px solid #ccc;
+}
+
+/* Style for tab content */
+.tab-content h2 {
+    margin-top: 0;
+}
